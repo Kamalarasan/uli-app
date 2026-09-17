@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}New Application{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <ol class="breadcrumb breadcrumb-dark">
+            <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item active">New Application</li>
+        </ol>
+        <h1 class="page-title">Submit Application</h1>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <form id="applicationForm">
+            <!-- Section 1: Personal Info -->
+            <div class="form-section">
+                <div class="form-section-title"><i class="bi bi-person"></i> Personal Information</div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Full Name</label>
+                        <input type="text" class="form-control form-control-dark" name="applicant_name" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Email</label>
+                        <input type="email" class="form-control form-control-dark" name="email" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Phone</label>
+                        <input type="tel" class="form-control form-control-dark" name="phone" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Date of Birth</label>
+                        <input type="date" class="form-control form-control-dark" name="dob" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">PAN Number</label>
+                        <input type="text" class="form-control form-control-dark" name="pan_number" pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}" placeholder="ABCDE1234F" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Aadhaar Number</label>
+                        <input type="text" class="form-control form-control-dark" name="aadhaar_number" pattern="\d{12}" placeholder="12 digit number" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label-dark">Address</label>
+                        <input type="text" class="form-control form-control-dark" name="address" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">City</label>
+                        <input type="text" class="form-control form-control-dark" name="city" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">State</label>
+                        <input type="text" class="form-control form-control-dark" name="state" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Employment Details -->
+            <div class="form-section">
+                <div class="form-section-title"><i class="bi bi-briefcase"></i> Employment Details</div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Employment Type</label>
+                        <select class="form-select form-select-dark" name="employment_type" required>
+                            <option value="">Select...</option>
+                            <option value="SALARIED">Salaried</option>
+                            <option value="SELF_EMPLOYED">Self Employed</option>
+                            <option value="BUSINESS">Business</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Company/Employer Name</label>
+                        <input type="text" class="form-control form-control-dark" name="employer_name" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Industry</label>
+                        <input type="text" class="form-control form-control-dark" name="industry" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Years Employed</label>
+                        <input type="number" step="0.1" class="form-control form-control-dark" name="years_employed" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Financial Details -->
+            <div class="form-section">
+                <div class="form-section-title"><i class="bi bi-wallet2"></i> Financial Details</div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label-dark">Monthly Income (₹)</label>
+                        <input type="number" class="form-control form-control-dark" name="monthly_income" id="monthly_income" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label-dark">Monthly Expenses (₹)</label>
+                        <input type="number" class="form-control form-control-dark" name="monthly_expenses" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label-dark">Existing EMI (₹)</label>
+                        <input type="number" class="form-control form-control-dark" name="existing_emi" value="0" required>
+                    </div>
+                    <div class="col-12 mt-4">
+                        <div class="slider-label">
+                            <span>Credit Score</span>
+                            <span id="creditScoreVal" class="text-primary fw-bold">750</span>
+                        </div>
+                        <input type="range" class="simulator-slider mt-2" name="credit_score" id="credit_score" min="300" max="900" value="750">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Loan Requirements -->
+            <div class="form-section">
+                <div class="form-section-title"><i class="bi bi-cash-coin"></i> Loan Requirements</div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Loan Amount (₹)</label>
+                        <input type="number" class="form-control form-control-dark" name="loan_amount" id="loan_amount" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Loan Purpose</label>
+                        <select class="form-select form-select-dark" name="loan_purpose" required>
+                            <option value="">Select...</option>
+                            <option value="HOME">Home Loan</option>
+                            <option value="PERSONAL">Personal Loan</option>
+                            <option value="BUSINESS">Business Loan</option>
+                            <option value="AUTO">Auto Loan</option>
+                            <option value="EDUCATION">Education Loan</option>
+                        </select>
+                    </div>
+                    <div class="col-12 mt-4">
+                        <div class="slider-label">
+                            <span>Tenure (Months)</span>
+                            <span id="tenureDisplay" class="text-primary fw-bold">24 months (2 years)</span>
+                        </div>
+                        <input type="range" class="simulator-slider mt-2" name="tenure_months" id="tenure_months" min="12" max="360" step="12" value="24">
+                    </div>
+                    <div class="col-12 mt-3 p-3 rounded" style="background: rgba(79,195,247,0.05); border: 1px dashed rgba(79,195,247,0.3)">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-secondary small text-uppercase">Est. Monthly EMI (at 10% pa)</span>
+                            <span class="fs-4 fw-bold text-white" id="estEmi">₹0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 5: Documents -->
+            <div class="form-section">
+                <div class="form-section-title"><i class="bi bi-file-earmark-arrow-up"></i> Document Upload</div>
+                <div class="p-4 text-center rounded mb-3" style="border: 2px dashed rgba(255,255,255,0.1); background: rgba(0,0,0,0.2);" id="dropZone">
+                    <i class="bi bi-cloud-arrow-up display-4 text-muted mb-2"></i>
+                    <p class="mb-1 text-white">Drag and drop documents here</p>
+                    <p class="small text-muted mb-3">PDF, JPG, PNG (Max 10MB)</p>
+                    <button type="button" class="btn btn-outline-accent btn-sm" onclick="document.getElementById('fileInput').click()">Browse Files</button>
+                    <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
+                </div>
+                <ul class="list-group list-group-flush bg-transparent" id="fileList">
+                    <!-- Files will appear here -->
+                </ul>
+            </div>
+
+            <button type="submit" class="btn btn-primary-dark w-100 py-3 mb-5" id="submitBtn">
+                <i class="bi bi-magic me-2"></i> Submit Application & Start AI Analysis
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    updateSliderDisplay('credit_score', 'creditScoreVal');
+    
+    const tenureSlider = document.getElementById('tenure_months');
+    const tenureDisplay = document.getElementById('tenureDisplay');
+    tenureSlider.addEventListener('input', (e) => {
+        const m = parseInt(e.target.value);
+        const y = Math.floor(m / 12);
+        tenureDisplay.innerText = `${m} months (${y} years)`;
+        calcEmi();
+    });
+
+    const amtInput = document.getElementById('loan_amount');
+    amtInput.addEventListener('input', calcEmi);
+    
+    function calcEmi() {
+        const p = parseFloat(amtInput.value) || 0;
+        const n = parseInt(tenureSlider.value) || 0;
+        const r = 10 / 12 / 100; // 10% annual
+        if(p>0 && n>0) {
+            const emi = p * r * Math.pow(1+r, n) / (Math.pow(1+r, n) - 1);
+            document.getElementById('estEmi').innerText = formatCurrency(emi);
+        } else {
+            document.getElementById('estEmi').innerText = '₹0';
+        }
+    }
+
+    // Form submit
+    document.getElementById('applicationForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Submitting...';
+        btn.disabled = true;
+
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        // Numeric conversions
+        ['monthly_income', 'monthly_expenses', 'existing_emi', 'credit_score', 'loan_amount', 'tenure_months', 'years_employed'].forEach(k => {
+            if(data[k]) data[k] = parseFloat(data[k]);
+        });
+
+        try {
+            const res = await fetch('/api/applications', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if(res.ok) {
+                const result = await res.json();
+                showToast('Application created successfully. Starting AI processing...');
+                
+                // Process it
+                await fetch(`/api/applications/${result.id}/process`, { method: 'POST' });
+                
+                window.location.href = `/app/report/${result.id}`;
+            } else {
+                const err = await res.json();
+                showToast(err.detail || 'Error submitting application', 'danger');
+                btn.innerHTML = '<i class="bi bi-magic me-2"></i> Submit Application & Start AI Analysis';
+                btn.disabled = false;
+            }
+        } catch(error) {
+            console.error(error);
+            showToast('Network error', 'danger');
+            btn.innerHTML = '<i class="bi bi-magic me-2"></i> Submit Application & Start AI Analysis';
+            btn.disabled = false;
+        }
+    });
+});
+</script>
+{% endblock %}

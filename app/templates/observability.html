@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}AI Observability{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">AI Observability & Audit Log</h1>
+        <p class="page-subtitle">Monitor LLM usage, performance, and validation status</p>
+    </div>
+</div>
+
+<!-- Top Metrics -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="metric-card primary">
+            <div class="metric-label">Total API Calls</div>
+            <div class="metric-value" id="totCalls">0</div>
+            <i class="bi bi-cpu metric-icon"></i>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card warning">
+            <div class="metric-label">Avg Latency</div>
+            <div class="metric-value" id="avgLat">0ms</div>
+            <i class="bi bi-stopwatch metric-icon"></i>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card primary">
+            <div class="metric-label">Total Tokens Used</div>
+            <div class="metric-value" id="totTok">0</div>
+            <i class="bi bi-coin metric-icon"></i>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card success">
+            <div class="metric-label">Success Rate</div>
+            <div class="metric-value" id="succRate">0%</div>
+            <i class="bi bi-check2-all metric-icon"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="chart-container">
+            <div class="chart-title">Latency Trend</div>
+            <div class="chart-subtitle">7-day daily average</div>
+            <div style="height: 250px;">
+                <canvas id="latencyChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="chart-container">
+            <div class="chart-title">Token Usage by Model</div>
+            <div class="chart-subtitle">Last 7 days</div>
+            <div style="height: 250px;">
+                <canvas id="tokenChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Audit Log Table -->
+<div class="card glass-card border-0">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="text-white m-0">Full Audit Log</h5>
+            <div class="d-flex gap-2">
+                <select class="form-select form-select-dark form-select-sm w-auto" id="modelFilter">
+                    <option value="">All Models</option>
+                    <option value="nemotron-mini">nemotron-mini</option>
+                    <option value="nemotron-large">nemotron-large</option>
+                </select>
+                <input type="text" class="form-control form-control-dark form-control-sm w-auto" placeholder="Search App ID" id="searchId">
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-dark-custom">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>App ID</th>
+                        <th>Stage</th>
+                        <th>Model</th>
+                        <th>Latency (ms)</th>
+                        <th>In Tokens</th>
+                        <th>Out Tokens</th>
+                        <th>Validation</th>
+                    </tr>
+                </thead>
+                <tbody id="auditTableBody">
+                    <!-- Injected via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Mock charts for now, update with fetch later
+    createLatencyChart('latencyChart', ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], [850, 920, 880, 1100, 950, 890, 860]);
+    createTokenUsageChart('tokenChart', ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], [12000, 15000, 11000, 14000, 13000, 10000, 9000], [45000, 52000, 48000, 55000, 51000, 42000, 39000]);
+    
+    // Mock stats
+    document.getElementById('totCalls').innerText = '1,245';
+    document.getElementById('avgLat').innerText = '920ms';
+    document.getElementById('totTok').innerText = '4.2M';
+    document.getElementById('succRate').innerText = '99.8%';
+
+    // Mock table data
+    const logs = [
+        {ts: '2023-10-24 10:45:01', id: 'a1b2', stage: 'DOCUMENT_EXTRACTION', model: 'nemotron-mini', lat: 450, inT: 1200, outT: 450, val: 'SUCCESS'},
+        {ts: '2023-10-24 10:45:03', id: 'a1b2', stage: 'FINANCIAL_ANALYSIS', model: 'nemotron-large', lat: 1850, inT: 3400, outT: 850, val: 'SUCCESS'},
+        {ts: '2023-10-24 10:45:10', id: 'a1b2', stage: 'RISK_SCORING', model: 'nemotron-large', lat: 2100, inT: 4100, outT: 320, val: 'RECOVERED'}
+    ];
+
+    const tbody = document.getElementById('auditTableBody');
+    logs.forEach(log => {
+        const row = document.createElement('tr');
+        if (log.model.includes('mini')) row.classList.add('model-nemotron-mini');
+        if (log.model.includes('large')) row.classList.add('model-nemotron-large');
+        
+        let valClass = 'validation-success';
+        if(log.val === 'FAILED') valClass = 'validation-failed';
+        if(log.val === 'RECOVERED') valClass = 'validation-recovered';
+
+        row.innerHTML = `
+            <td><small class="text-muted">${log.ts}</small></td>
+            <td>#${log.id}</td>
+            <td>${log.stage}</td>
+            <td><code>${log.model}</code></td>
+            <td>${log.lat}</td>
+            <td>${log.inT}</td>
+            <td>${log.outT}</td>
+            <td class="fw-bold ${valClass}">${log.val}</td>
+        `;
+        tbody.appendChild(row);
+    });
+});
+</script>
+{% endblock %}

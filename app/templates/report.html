@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Report #{{ application.id }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <ol class="breadcrumb breadcrumb-dark">
+            <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item active">Report #{{ application.id|string|truncate(8, True, '') }}</li>
+        </ol>
+        <h1 class="page-title">Underwriting Report</h1>
+    </div>
+    <div>
+        <a href="/app/simulator?app_id={{ application.id }}" class="btn btn-primary-dark me-2">
+            <i class="bi bi-sliders"></i> Digital Twin
+        </a>
+        <button class="btn btn-outline-accent" onclick="window.print()">
+            <i class="bi bi-printer"></i> Print
+        </button>
+    </div>
+</div>
+
+<!-- Top section: 3 columns -->
+<div class="row g-4 mb-4">
+    <!-- Applicant Info -->
+    <div class="col-md-4">
+        <div class="card glass-card h-100">
+            <div class="card-body">
+                <h6 class="text-uppercase text-secondary mb-3 fs-7 fw-bold">Applicant</h6>
+                <h4 class="text-white mb-1">{{ application.applicant_name }}</h4>
+                <p class="text-muted small mb-3">{{ application.email }} | {{ application.phone }}</p>
+                <div class="row g-2 small">
+                    <div class="col-6"><span class="text-secondary">PAN:</span> <span class="text-white">{{ application.pan_number }}</span></div>
+                    <div class="col-6"><span class="text-secondary">Emp:</span> <span class="text-white">{{ application.employment_type }}</span></div>
+                    <div class="col-6"><span class="text-secondary">CIBIL:</span> <span class="text-white fw-bold">{{ application.credit_score }}</span></div>
+                    <div class="col-6"><span class="text-secondary">Income:</span> <span class="text-white">₹{{ application.monthly_income }}</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loan Info -->
+    <div class="col-md-4">
+        <div class="card glass-card h-100">
+            <div class="card-body">
+                <h6 class="text-uppercase text-secondary mb-3 fs-7 fw-bold">Loan Details</h6>
+                <h4 class="text-white mb-1 amount-display" data-amount="{{ application.loan_amount }}">₹{{ application.loan_amount }}</h4>
+                <p class="text-muted small mb-3">{{ application.loan_purpose }} | {{ application.tenure_months }} Months</p>
+                <div class="row g-2 small">
+                    <div class="col-6"><span class="text-secondary">Existing EMI:</span> <span class="text-white">₹{{ application.existing_emi }}</span></div>
+                    <div class="col-6"><span class="text-secondary">Expenses:</span> <span class="text-white">₹{{ application.monthly_expenses }}</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Decision -->
+    <div class="col-md-4">
+        <div class="decision-card {% if report.final_decision == 'APPROVED' %}approved{% elif report.final_decision == 'REJECTED' %}rejected{% else %}review{% endif %}">
+            <div class="text-secondary text-uppercase fs-7 fw-bold mb-2">Final Decision</div>
+            <div class="decision-badge 
+                {% if report.final_decision == 'APPROVED' %}text-success
+                {% elif report.final_decision == 'REJECTED' %}text-danger
+                {% else %}text-warning{% endif %}">
+                {{ report.final_decision }}
+            </div>
+            {% if report.confidence_score %}
+            <div class="small text-muted mt-2">AI Confidence: {{ (report.confidence_score * 100)|round }}%</div>
+            {% endif %}
+            {% if report.final_decision == 'APPROVED' and report.recommended_rate %}
+            <div class="mt-2 text-white fw-bold">Rec. Rate: {{ report.recommended_rate }}% p.a.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Charts & Metrics -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="chart-container h-100">
+            <div class="chart-title">Overall Risk Score</div>
+            <div class="chart-subtitle">Lower is better</div>
+            <div class="risk-gauge-container">
+                <canvas id="riskGauge"></canvas>
+                <div class="risk-score-text">{{ report.risk_score|round }}</div>
+                <div class="risk-label">Score</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="chart-container h-100">
+            <div class="chart-title">Financial Health Dimensions</div>
+            <div class="chart-subtitle">Analyzed across 5 key pillars</div>
+            <div style="height: 250px;">
+                <canvas id="radarChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pipeline Stages -->
+<h5 class="text-white mt-5 mb-3">AI Reasoning Pipeline</h5>
+<div class="accordion" id="pipelineAccordion" data-bs-theme="dark">
+    {% for stage_name, result in stage_results.items() %}
+    <div class="accordion-item" style="background: var(--bg-card); border-color: var(--border-card);">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
+                <div class="d-flex align-items-center w-100">
+                    <span class="me-3">
+                        {% if result.status == 'SUCCESS' %}
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        {% else %}
+                        <i class="bi bi-x-circle-fill text-danger"></i>
+                        {% endif %}
+                    </span>
+                    <strong class="text-capitalize">{{ stage_name.replace('_', ' ') }}</strong>
+                </div>
+            </button>
+        </h2>
+        <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#pipelineAccordion">
+            <div class="accordion-body text-muted small">
+                <pre style="white-space: pre-wrap; font-family: inherit;">{{ result.data | tojson(indent=2) }}</pre>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Policy Violations -->
+{% if report.policy_violations and report.policy_violations|length > 0 %}
+<h5 class="text-white mt-5 mb-3">Policy Violations</h5>
+<div class="table-responsive">
+    <table class="table table-dark-custom">
+        <thead>
+            <tr><th>Severity</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+            {% for v in report.policy_violations %}
+            <tr>
+                <td><span class="badge bg-danger">HIGH</span></td>
+                <td>{{ v }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Format currency
+    document.querySelectorAll('.amount-display').forEach(el => {
+        el.innerText = formatCurrency(parseFloat(el.getAttribute('data-amount')));
+    });
+
+    // Charts
+    const riskScore = {{ report.risk_score|default(0) }};
+    createRiskGauge('riskGauge', riskScore);
+
+    const radarLabels = ['Income Stability', 'Debt Burden', 'Credit History', 'Asset Strength', 'Liquidity'];
+    // Mock radar data if not provided
+    const radarData = {{ radar_data|default([80, 60, 75, 50, 90])|tojson }};
+    createRadarChart('radarChart', radarLabels, radarData, 'Applicant Profile');
+});
+</script>
+<style>
+@media print {
+    .sidebar, .page-header button, .page-header a { display: none !important; }
+    .main-content { margin: 0; padding: 0; }
+    body { background: white; color: black; }
+    .card { border: 1px solid #ddd; }
+}
+</style>
+{% endblock %}

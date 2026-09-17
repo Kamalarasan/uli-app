@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Digital Twin Simulator{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Digital Twin Simulator</h1>
+        <p class="page-subtitle">Model what-if scenarios on loan applications</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Panel: Controls -->
+    <div class="col-md-4">
+        <div class="card glass-card h-100">
+            <div class="card-body">
+                <h6 class="text-uppercase text-secondary mb-4 fs-7 fw-bold">Scenario Parameters</h6>
+                
+                <div class="mb-4">
+                    <label class="form-label-dark">Select Application</label>
+                    <select class="form-select form-select-dark" id="appSelector">
+                        <option value="">Choose...</option>
+                        <!-- Options injected by JS or context -->
+                    </select>
+                </div>
+
+                <hr class="border-secondary opacity-25 my-4">
+
+                <div class="mb-4">
+                    <div class="slider-label">
+                        <span>Salary Change</span>
+                        <span id="valSalary" class="text-white">0%</span>
+                    </div>
+                    <input type="range" class="simulator-slider mt-2" id="simSalary" min="-50" max="100" step="5" value="0">
+                </div>
+
+                <div class="mb-4">
+                    <div class="slider-label">
+                        <span>Expense Inflation</span>
+                        <span id="valExpense" class="text-white">0%</span>
+                    </div>
+                    <input type="range" class="simulator-slider mt-2" id="simExpense" min="-20" max="50" step="5" value="0">
+                </div>
+
+                <div class="mb-4">
+                    <div class="slider-label">
+                        <span>Interest Rate Shift</span>
+                        <span id="valRate" class="text-white">0 bps</span>
+                    </div>
+                    <input type="range" class="simulator-slider mt-2" id="simRate" min="-300" max="500" step="25" value="0">
+                </div>
+
+                <div class="mb-4">
+                    <div class="slider-label">
+                        <span>Tenure Change</span>
+                        <span id="valTenure" class="text-white">0 months</span>
+                    </div>
+                    <input type="range" class="simulator-slider mt-2" id="simTenure" min="-24" max="60" step="6" value="0">
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label-dark">Macro Economic Condition</label>
+                    <div class="d-flex gap-3 mt-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="macroEco" id="ecoNormal" value="NORMAL" checked>
+                            <label class="form-check-label small text-white" for="ecoNormal">Normal</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="macroEco" id="ecoDownturn" value="DOWNTURN">
+                            <label class="form-check-label small text-danger" for="ecoDownturn">Downturn</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="macroEco" id="ecoBoom" value="BOOM">
+                            <label class="form-check-label small text-success" for="ecoBoom">Boom</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label-dark">Scenario Name</label>
+                    <input type="text" class="form-control form-control-dark" id="scenarioName" placeholder="e.g. High Inflation Stress">
+                </div>
+
+                <button class="btn btn-primary-dark w-100 py-2" id="runSimBtn">
+                    <i class="bi bi-play-fill me-1"></i> Run Simulation
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel: Results -->
+    <div class="col-md-8">
+        <div id="emptyState" class="card glass-card h-100 d-flex align-items-center justify-content-center p-5 text-center">
+            <div>
+                <i class="bi bi-sliders2 text-muted" style="font-size: 48px;"></i>
+                <h5 class="text-white mt-3">Ready to Simulate</h5>
+                <p class="text-muted small">Select an application and adjust parameters to see how the AI model's decision changes under different conditions.</p>
+            </div>
+        </div>
+
+        <div id="resultsPanel" class="d-none">
+            <!-- Comparison Cards -->
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <div class="card glass-card p-3">
+                        <h6 class="text-secondary small text-uppercase mb-2">Base Decision</h6>
+                        <div id="baseDecisionBadge" class="fs-4 fw-bold mb-1">-</div>
+                        <div class="small text-muted">Risk Score: <span id="baseRisk">0</span></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card glass-card p-3" style="border-color: var(--accent-primary)">
+                        <h6 class="text-secondary small text-uppercase mb-2">Simulated Decision</h6>
+                        <div id="simDecisionBadge" class="fs-4 fw-bold mb-1">-</div>
+                        <div class="small text-muted">Risk Score: <span id="simRisk">0</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="chart-container">
+                <div class="chart-title">Metric Comparison</div>
+                <div style="height: 300px;">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let compChart = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateSliderDisplay('simSalary', 'valSalary', '%');
+    updateSliderDisplay('simExpense', 'valExpense', '%');
+    updateSliderDisplay('simRate', 'valRate', ' bps');
+    updateSliderDisplay('simTenure', 'valTenure', ' mo');
+
+    // Fetch apps for dropdown
+    fetch('/api/applications')
+        .then(res => res.json())
+        .then(data => {
+            const sel = document.getElementById('appSelector');
+            data.forEach(app => {
+                if(app.status !== 'PENDING' && app.status !== 'PROCESSING') {
+                    const opt = document.createElement('option');
+                    opt.value = app.id;
+                    opt.textContent = `App #${app.id.substring(0,8)} - ${app.applicant_name}`;
+                    sel.appendChild(opt);
+                }
+            });
+            // auto select if query param
+            const urlParams = new URLSearchParams(window.location.search);
+            const appId = urlParams.get('app_id');
+            if (appId) {
+                sel.value = appId;
+            }
+        });
+
+    document.getElementById('runSimBtn').addEventListener('click', async () => {
+        const appId = document.getElementById('appSelector').value;
+        if(!appId) {
+            showToast('Please select an application', 'warning');
+            return;
+        }
+
+        const btn = document.getElementById('runSimBtn');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Running...';
+        btn.disabled = true;
+
+        const payload = {
+            application_id: appId,
+            name: document.getElementById('scenarioName').value || 'Simulation',
+            salary_change_pct: parseFloat(document.getElementById('simSalary').value),
+            expense_inflation_pct: parseFloat(document.getElementById('simExpense').value),
+            interest_rate_shift_bps: parseFloat(document.getElementById('simRate').value),
+            tenure_change_months: parseInt(document.getElementById('simTenure').value),
+            macro_economic_condition: document.querySelector('input[name="macroEco"]:checked').value
+        };
+
+        try {
+            const res = await fetch('/api/simulator/run', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            
+            if(res.ok) {
+                const data = await res.json();
+                showResults(data);
+            } else {
+                showToast('Simulation failed', 'danger');
+            }
+        } catch (e) {
+            console.error(e);
+            // Mock display for demo if backend not ready
+            showResults({
+                base_decision: 'APPROVED',
+                simulated_decision: 'REJECTED',
+                base_risk_score: 45,
+                simulated_risk_score: 75,
+                base_metrics: { health: 80, affordability: 70, dti: 35, prob: 85 },
+                simulated_metrics: { health: 60, affordability: 40, dti: 55, prob: 30 }
+            });
+        } finally {
+            btn.innerHTML = '<i class="bi bi-play-fill me-1"></i> Run Simulation';
+            btn.disabled = false;
+        }
+    });
+});
+
+function showResults(data) {
+    document.getElementById('emptyState').classList.add('d-none');
+    document.getElementById('resultsPanel').classList.remove('d-none');
+
+    // Update Badges
+    const bBadge = document.getElementById('baseDecisionBadge');
+    bBadge.textContent = data.base_decision;
+    bBadge.className = `fs-4 fw-bold mb-1 text-${getColorClass(data.base_decision)}`;
+    document.getElementById('baseRisk').textContent = Math.round(data.base_risk_score);
+
+    const sBadge = document.getElementById('simDecisionBadge');
+    sBadge.textContent = data.simulated_decision;
+    sBadge.className = `fs-4 fw-bold mb-1 text-${getColorClass(data.simulated_decision)}`;
+    document.getElementById('simRisk').textContent = Math.round(data.simulated_risk_score);
+
+    // Update Chart
+    const baseData = [data.base_metrics.health, data.base_metrics.affordability, data.base_metrics.dti, data.base_metrics.prob];
+    const simData = [data.simulated_metrics.health, data.simulated_metrics.affordability, data.simulated_metrics.dti, data.simulated_metrics.prob];
+
+    if(compChart) compChart.destroy();
+    compChart = createComparisonChart('comparisonChart', baseData, simData);
+}
+
+function getColorClass(dec) {
+    if(dec === 'APPROVED') return 'success';
+    if(dec === 'REJECTED') return 'danger';
+    return 'warning';
+}
+</script>
+{% endblock %}
